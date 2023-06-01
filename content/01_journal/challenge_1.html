@@ -185,7 +185,17 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active"><h2 id="toc-title">Contents</h2>
+   
+  <ul class="collapse">
+<li><a href="#loading-libraries-and-data" id="toc-loading-libraries-and-data" class="nav-link active" data-scroll-target="#loading-libraries-and-data"><span class="toc-section-number">1</span>  Loading libraries and data</a></li>
+  <li><a href="#conversion-of-the-stock-prices-to-a-standardized-format-daily-returns" id="toc-conversion-of-the-stock-prices-to-a-standardized-format-daily-returns" class="nav-link" data-scroll-target="#conversion-of-the-stock-prices-to-a-standardized-format-daily-returns"><span class="toc-section-number">2</span>  Conversion of the stock prices to a standardized format (daily returns)</a></li>
+  <li><a href="#conversion-to-the-user-item-format" id="toc-conversion-to-the-user-item-format" class="nav-link" data-scroll-target="#conversion-to-the-user-item-format"><span class="toc-section-number">3</span>  Conversion to the User-Item format</a></li>
+  <li><a href="#performing-k-means-clustering" id="toc-performing-k-means-clustering" class="nav-link" data-scroll-target="#performing-k-means-clustering"><span class="toc-section-number">4</span>  Performing K-Means clustering</a></li>
+  <li><a href="#finding-the-optimal-value-of-k" id="toc-finding-the-optimal-value-of-k" class="nav-link" data-scroll-target="#finding-the-optimal-value-of-k"><span class="toc-section-number">5</span>  Finding the optimal value of K</a></li>
+  <li><a href="#application-of-umap" id="toc-application-of-umap" class="nav-link" data-scroll-target="#application-of-umap"><span class="toc-section-number">6</span>  Application of UMAP</a></li>
+  <li><a href="#combination-of-k-means-and-umap" id="toc-combination-of-k-means-and-umap" class="nav-link" data-scroll-target="#combination-of-k-means-and-umap"><span class="toc-section-number">7</span>  Combination of K-Means and UMAP</a></li>
+  </ul></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><div class="quarto-title">
@@ -208,20 +218,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   </div>
   
 
-</header><div class="callout-note callout callout-style-default callout-captioned">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-caption-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Code</p>
-</div>
-</div>
-<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-1_8ad0ff93cfd60c2b516bf334092bf93f">
+</header><section id="loading-libraries-and-data" class="level1" data-number="1"><h1 data-number="1">
+<span class="header-section-number">1</span> Loading libraries and data</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-1_b18c32652606a7dc3812913e5e871193">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Load libraries </span></span>
 <span id="cb1-2"><a href="#cb1-2"></a>    <span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-3"><a href="#cb1-3"></a>    <span class="fu">library</span>(tidyquant)</span>
@@ -232,138 +231,144 @@ Note
 <span id="cb1-8"><a href="#cb1-8"></a></span>
 <span id="cb1-9"><a href="#cb1-9"></a><span class="co"># STOCK PRICES and SECTOR INFORMATION</span></span>
 <span id="cb1-10"><a href="#cb1-10"></a></span>
-<span id="cb1-11"><a href="#cb1-11"></a>sp_500_prices_tbl <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_prices_tbl.rds"</span>)</span>
-<span id="cb1-12"><a href="#cb1-12"></a></span>
-<span id="cb1-13"><a href="#cb1-13"></a>sp_500_index_tbl <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_index_tbl.rds"</span>)</span>
-<span id="cb1-14"><a href="#cb1-14"></a></span>
-<span id="cb1-15"><a href="#cb1-15"></a></span>
-<span id="cb1-16"><a href="#cb1-16"></a><span class="co">#Step 1</span></span>
-<span id="cb1-17"><a href="#cb1-17"></a></span>
-<span id="cb1-18"><a href="#cb1-18"></a>sp_500_daily_returns_tbl <span class="ot">&lt;-</span> sp_500_prices_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb1-19"><a href="#cb1-19"></a>  <span class="fu">select</span>(symbol, date, adjusted) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-20"><a href="#cb1-20"></a>  <span class="fu">filter</span>(date <span class="sc">&gt;=</span> <span class="st">'2018-01-01'</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-21"><a href="#cb1-21"></a>  <span class="fu">group_by</span>(symbol) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-22"><a href="#cb1-22"></a>  <span class="fu">mutate</span>(<span class="at">lag =</span> <span class="fu">lag</span>(adjusted)) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-23"><a href="#cb1-23"></a>  na.omit <span class="sc">%&gt;%</span> </span>
-<span id="cb1-24"><a href="#cb1-24"></a>  <span class="fu">mutate</span>(<span class="at">pct_return =</span> (adjusted <span class="sc">-</span> lag)<span class="sc">/</span>lag) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-25"><a href="#cb1-25"></a>  <span class="fu">select</span>(symbol, date, pct_return)</span>
-<span id="cb1-26"><a href="#cb1-26"></a></span>
-<span id="cb1-27"><a href="#cb1-27"></a><span class="co">#Step 2</span></span>
-<span id="cb1-28"><a href="#cb1-28"></a></span>
-<span id="cb1-29"><a href="#cb1-29"></a>stock_date_matrix_tbl <span class="ot">&lt;-</span> sp_500_daily_returns_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb1-30"><a href="#cb1-30"></a>  <span class="fu">spread</span>(date, pct_return) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-31"><a href="#cb1-31"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.),<span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-32"><a href="#cb1-32"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb1-33"><a href="#cb1-33"></a></span>
-<span id="cb1-34"><a href="#cb1-34"></a><span class="co">#Step 3</span></span>
-<span id="cb1-35"><a href="#cb1-35"></a></span>
-<span id="cb1-36"><a href="#cb1-36"></a>kmeans_obj <span class="ot">&lt;-</span> stock_date_matrix_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb1-37"><a href="#cb1-37"></a>  <span class="fu">within</span>(<span class="fu">rm</span>(<span class="st">"symbol"</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-38"><a href="#cb1-38"></a>  <span class="fu">kmeans</span>(<span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">20</span>)</span>
-<span id="cb1-39"><a href="#cb1-39"></a></span>
-<span id="cb1-40"><a href="#cb1-40"></a><span class="co">#Step 4</span></span>
-<span id="cb1-41"><a href="#cb1-41"></a></span>
-<span id="cb1-42"><a href="#cb1-42"></a>kmeans_mapper <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">center =</span> <span class="dv">3</span>) {</span>
-<span id="cb1-43"><a href="#cb1-43"></a>  stock_date_matrix_tbl <span class="sc">%&gt;%</span></span>
-<span id="cb1-44"><a href="#cb1-44"></a>    <span class="fu">select</span>(<span class="sc">-</span>symbol) <span class="sc">%&gt;%</span></span>
-<span id="cb1-45"><a href="#cb1-45"></a>    <span class="fu">kmeans</span>(<span class="at">centers =</span> center, <span class="at">nstart =</span> <span class="dv">20</span>)</span>
-<span id="cb1-46"><a href="#cb1-46"></a>}</span>
-<span id="cb1-47"><a href="#cb1-47"></a></span>
-<span id="cb1-48"><a href="#cb1-48"></a>k_means_mapped_tbl <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">centers =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-49"><a href="#cb1-49"></a>  <span class="fu">mutate</span>(<span class="at">k_means =</span> centers <span class="sc">%&gt;%</span>  <span class="fu">map</span>(kmeans_mapper)) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-50"><a href="#cb1-50"></a>  <span class="fu">mutate</span>(<span class="at">glance =</span> k_means <span class="sc">%&gt;%</span> <span class="fu">map</span>(glance))</span>
-<span id="cb1-51"><a href="#cb1-51"></a>  </span>
-<span id="cb1-52"><a href="#cb1-52"></a>k_means_mapped_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb1-53"><a href="#cb1-53"></a>  <span class="fu">unnest</span>(glance) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-54"><a href="#cb1-54"></a>  <span class="fu">select</span>(centers, tot.withinss) <span class="sc">%&gt;%</span> </span>
-<span id="cb1-55"><a href="#cb1-55"></a>  </span>
-<span id="cb1-56"><a href="#cb1-56"></a>  </span>
-<span id="cb1-57"><a href="#cb1-57"></a><span class="co"># Visualization</span></span>
-<span id="cb1-58"><a href="#cb1-58"></a>  </span>
-<span id="cb1-59"><a href="#cb1-59"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(centers, tot.withinss)) <span class="sc">+</span></span>
-<span id="cb1-60"><a href="#cb1-60"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#2DC6D6"</span>, <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
-<span id="cb1-61"><a href="#cb1-61"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"#2DC6D6"</span>, <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb1-62"><a href="#cb1-62"></a>  <span class="co"># Add labels (which are repelled a little)</span></span>
-<span id="cb1-63"><a href="#cb1-63"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> centers), <span class="at">color =</span> <span class="st">"#2DC6D6"</span>) <span class="sc">+</span> </span>
-<span id="cb1-64"><a href="#cb1-64"></a>  </span>
-<span id="cb1-65"><a href="#cb1-65"></a><span class="co"># Formatting</span></span>
-<span id="cb1-66"><a href="#cb1-66"></a>  </span>
-<span id="cb1-67"><a href="#cb1-67"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Skree Plot"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-11"><a href="#cb1-11"></a>  sp_500_prices_tbl <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_prices_tbl.rds"</span>)</span>
+<span id="cb1-12"><a href="#cb1-12"></a>  </span>
+<span id="cb1-13"><a href="#cb1-13"></a>  sp_500_index_tbl <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_index_tbl.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="conversion-of-the-stock-prices-to-a-standardized-format-daily-returns" class="level1" data-number="2"><h1 data-number="2">
+<span class="header-section-number">2</span> Conversion of the stock prices to a standardized format (daily returns)</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-2_198159bed23f99c767df99c2bce3ff99">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>  sp_500_daily_returns_tbl <span class="ot">&lt;-</span> sp_500_prices_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb2-2"><a href="#cb2-2"></a>  <span class="fu">select</span>(symbol, date, adjusted) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-3"><a href="#cb2-3"></a>  <span class="fu">filter</span>(date <span class="sc">&gt;=</span> <span class="st">'2018-01-01'</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-4"><a href="#cb2-4"></a>  <span class="fu">group_by</span>(symbol) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-5"><a href="#cb2-5"></a>  <span class="fu">mutate</span>(<span class="at">lag =</span> <span class="fu">lag</span>(adjusted)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-6"><a href="#cb2-6"></a>  na.omit <span class="sc">%&gt;%</span> </span>
+<span id="cb2-7"><a href="#cb2-7"></a>  <span class="fu">mutate</span>(<span class="at">pct_return =</span> (adjusted <span class="sc">-</span> lag)<span class="sc">/</span>lag) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-8"><a href="#cb2-8"></a>  <span class="fu">select</span>(symbol, date, pct_return)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="conversion-to-the-user-item-format" class="level1" data-number="3"><h1 data-number="3">
+<span class="header-section-number">3</span> Conversion to the User-Item format</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-3_b85aedf771b43f2fdfe29cc6f102db15">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>  stock_date_matrix_tbl <span class="ot">&lt;-</span> sp_500_daily_returns_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb3-2"><a href="#cb3-2"></a>  <span class="fu">spread</span>(date, pct_return) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-3"><a href="#cb3-3"></a>  <span class="fu">replace</span>(<span class="fu">is.na</span>(.),<span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-4"><a href="#cb3-4"></a>  <span class="fu">ungroup</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="performing-k-means-clustering" class="level1" data-number="4"><h1 data-number="4">
+<span class="header-section-number">4</span> Performing K-Means clustering</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-4_5aec95e628b544e2bdb87fc226aac207">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>  kmeans_obj <span class="ot">&lt;-</span> stock_date_matrix_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb4-2"><a href="#cb4-2"></a>  <span class="fu">within</span>(<span class="fu">rm</span>(<span class="st">"symbol"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="#cb4-3"></a>  <span class="fu">kmeans</span>(<span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="finding-the-optimal-value-of-k" class="level1" data-number="5"><h1 data-number="5">
+<span class="header-section-number">5</span> Finding the optimal value of K</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-5_01c4b02bca33415ee17d213a669b6bbe">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>kmeans_mapper <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">center =</span> <span class="dv">3</span>) {</span>
+<span id="cb5-2"><a href="#cb5-2"></a>  stock_date_matrix_tbl <span class="sc">%&gt;%</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a>    <span class="fu">select</span>(<span class="sc">-</span>symbol) <span class="sc">%&gt;%</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a>    <span class="fu">kmeans</span>(<span class="at">centers =</span> center, <span class="at">nstart =</span> <span class="dv">20</span>)</span>
+<span id="cb5-5"><a href="#cb5-5"></a>}</span>
+<span id="cb5-6"><a href="#cb5-6"></a></span>
+<span id="cb5-7"><a href="#cb5-7"></a>k_means_mapped_tbl <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">centers =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-8"><a href="#cb5-8"></a>  <span class="fu">mutate</span>(<span class="at">k_means =</span> centers <span class="sc">%&gt;%</span>  <span class="fu">map</span>(kmeans_mapper)) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-9"><a href="#cb5-9"></a>  <span class="fu">mutate</span>(<span class="at">glance =</span> k_means <span class="sc">%&gt;%</span> <span class="fu">map</span>(glance))</span>
+<span id="cb5-10"><a href="#cb5-10"></a>  </span>
+<span id="cb5-11"><a href="#cb5-11"></a>k_means_mapped_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb5-12"><a href="#cb5-12"></a>  <span class="fu">unnest</span>(glance) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-13"><a href="#cb5-13"></a>  <span class="fu">select</span>(centers, tot.withinss) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-14"><a href="#cb5-14"></a>  </span>
+<span id="cb5-15"><a href="#cb5-15"></a>  </span>
+<span id="cb5-16"><a href="#cb5-16"></a><span class="co"># Visualization of tot.withinss</span></span>
+<span id="cb5-17"><a href="#cb5-17"></a>  </span>
+<span id="cb5-18"><a href="#cb5-18"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(centers, tot.withinss)) <span class="sc">+</span></span>
+<span id="cb5-19"><a href="#cb5-19"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"#2DC6D6"</span>, <span class="at">size =</span> <span class="dv">5</span>) <span class="sc">+</span></span>
+<span id="cb5-20"><a href="#cb5-20"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"#2DC6D6"</span>, <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb5-21"><a href="#cb5-21"></a>  <span class="co"># Add labels (which are repelled a little)</span></span>
+<span id="cb5-22"><a href="#cb5-22"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> centers), <span class="at">color =</span> <span class="st">"#2DC6D6"</span>) <span class="sc">+</span> </span>
+<span id="cb5-23"><a href="#cb5-23"></a>  </span>
+<span id="cb5-24"><a href="#cb5-24"></a><span class="co"># Formatting</span></span>
+<span id="cb5-25"><a href="#cb5-25"></a>  </span>
+<span id="cb5-26"><a href="#cb5-26"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Skree Plot"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
-<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-1-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="challenge_1_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></a></p>
+<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-5-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="challenge_1_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></a></p>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="co">#Step 5</span></span>
-<span id="cb2-2"><a href="#cb2-2"></a></span>
-<span id="cb2-3"><a href="#cb2-3"></a>umap_results <span class="ot">&lt;-</span> stock_date_matrix_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb2-4"><a href="#cb2-4"></a>  <span class="fu">select</span>(<span class="sc">-</span>symbol) <span class="sc">%&gt;%</span> </span>
-<span id="cb2-5"><a href="#cb2-5"></a>  <span class="fu">umap</span>()</span>
-<span id="cb2-6"><a href="#cb2-6"></a></span>
-<span id="cb2-7"><a href="#cb2-7"></a>umap_results_tbl <span class="ot">&lt;-</span> umap_results<span class="sc">$</span>layout <span class="sc">%&gt;%</span> </span>
-<span id="cb2-8"><a href="#cb2-8"></a>  <span class="fu">as_tibble</span>(<span class="at">.name_repair =</span> <span class="st">"unique"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb2-9"><a href="#cb2-9"></a>  <span class="fu">set_names</span>(<span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb2-10"><a href="#cb2-10"></a>  <span class="fu">bind_cols</span>(stock_date_matrix_tbl <span class="sc">%&gt;%</span> <span class="fu">select</span>(symbol)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="application-of-umap" class="level1" data-number="6"><h1 data-number="6">
+<span class="header-section-number">6</span> Application of UMAP</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-6_0211d4983aa6f56bf7601701feaf115a">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>umap_results <span class="ot">&lt;-</span> stock_date_matrix_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb6-2"><a href="#cb6-2"></a>  <span class="fu">select</span>(<span class="sc">-</span>symbol) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-3"><a href="#cb6-3"></a>  <span class="fu">umap</span>()</span>
+<span id="cb6-4"><a href="#cb6-4"></a></span>
+<span id="cb6-5"><a href="#cb6-5"></a>umap_results_tbl <span class="ot">&lt;-</span> umap_results<span class="sc">$</span>layout <span class="sc">%&gt;%</span> </span>
+<span id="cb6-6"><a href="#cb6-6"></a>  <span class="fu">as_tibble</span>(<span class="at">.name_repair =</span> <span class="st">"unique"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-7"><a href="#cb6-7"></a>  <span class="fu">set_names</span>(<span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb6-8"><a href="#cb6-8"></a>  <span class="fu">bind_cols</span>(stock_date_matrix_tbl <span class="sc">%&gt;%</span> <span class="fu">select</span>(symbol)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>#&gt; New names:
 #&gt; • `` -&gt; `...1`
 #&gt; • `` -&gt; `...2`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>umap_results_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb4-2"><a href="#cb4-2"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(x, y), ) <span class="sc">+</span></span>
-<span id="cb4-3"><a href="#cb4-3"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span> </span>
-<span id="cb4-4"><a href="#cb4-4"></a>  <span class="fu">theme_tq</span>() <span class="sc">+</span> </span>
-<span id="cb4-5"><a href="#cb4-5"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> symbol), <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span> </span>
-<span id="cb4-6"><a href="#cb4-6"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"UMAP Projection"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>umap_results_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb8-2"><a href="#cb8-2"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(x, y), ) <span class="sc">+</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span> </span>
+<span id="cb8-4"><a href="#cb8-4"></a>  <span class="fu">theme_tq</span>() <span class="sc">+</span> </span>
+<span id="cb8-5"><a href="#cb8-5"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> symbol), <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span> </span>
+<span id="cb8-6"><a href="#cb8-6"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"UMAP Projection"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>#&gt; Warning: ggrepel: 496 unlabeled data points (too many overlaps). Consider
+<pre><code>#&gt; Warning: ggrepel: 500 unlabeled data points (too many overlaps). Consider
 #&gt; increasing max.overlaps</code></pre>
 </div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
-<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-1-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="challenge_1_files/figure-html/unnamed-chunk-1-2.png" class="img-fluid figure-img" width="672"></a></p>
+<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-6-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="challenge_1_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></a></p>
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co">#Step 6</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a></span>
-<span id="cb6-3"><a href="#cb6-3"></a>umap_kmeans_results_tbl <span class="ot">&lt;-</span> kmeans_obj <span class="sc">%&gt;%</span> </span>
-<span id="cb6-4"><a href="#cb6-4"></a>  <span class="fu">augment</span>(stock_date_matrix_tbl) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-5"><a href="#cb6-5"></a>  <span class="fu">select</span>(symbol, .cluster) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-6"><a href="#cb6-6"></a>  <span class="fu">left_join</span>(umap_results_tbl) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-7"><a href="#cb6-7"></a>  <span class="fu">left_join</span>(sp_500_index_tbl <span class="sc">%&gt;%</span> <span class="fu">select</span>(symbol, company, sector))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section><section id="combination-of-k-means-and-umap" class="level1" data-number="7"><h1 data-number="7">
+<span class="header-section-number">7</span> Combination of K-Means and UMAP</h1>
+<div class="cell" data-hash="challenge_1_cache/html/unnamed-chunk-7_20dfb0ebae48d9f7b197189696e596e0">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>umap_kmeans_results_tbl <span class="ot">&lt;-</span> kmeans_obj <span class="sc">%&gt;%</span> </span>
+<span id="cb10-2"><a href="#cb10-2"></a>  <span class="fu">augment</span>(stock_date_matrix_tbl) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-3"><a href="#cb10-3"></a>  <span class="fu">select</span>(symbol, .cluster) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-4"><a href="#cb10-4"></a>  <span class="fu">left_join</span>(umap_results_tbl) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-5"><a href="#cb10-5"></a>  <span class="fu">left_join</span>(sp_500_index_tbl <span class="sc">%&gt;%</span> <span class="fu">select</span>(symbol, company, sector))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>#&gt; Joining with `by = join_by(symbol)`
 #&gt; Joining with `by = join_by(symbol)`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>umap_kmeans_results_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb8-2"><a href="#cb8-2"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(x, y, <span class="at">color =</span> .cluster)) <span class="sc">+</span></span>
-<span id="cb8-3"><a href="#cb8-3"></a>  </span>
-<span id="cb8-4"><a href="#cb8-4"></a><span class="co"># Geometries</span></span>
-<span id="cb8-5"><a href="#cb8-5"></a></span>
-<span id="cb8-6"><a href="#cb8-6"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb8-7"><a href="#cb8-7"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> symbol), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">fill =</span> <span class="st">"#282A36"</span>) <span class="sc">+</span></span>
-<span id="cb8-8"><a href="#cb8-8"></a>  </span>
-<span id="cb8-9"><a href="#cb8-9"></a>  <span class="co"># Formatting</span></span>
-<span id="cb8-10"><a href="#cb8-10"></a></span>
-<span id="cb8-11"><a href="#cb8-11"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"#2d72d6"</span>, <span class="st">"#2dc6d6"</span>, <span class="st">"#2dd692"</span>, <span class="st">"#2dd692"</span>)) <span class="sc">+</span> </span>
-<span id="cb8-12"><a href="#cb8-12"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>umap_kmeans_results_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb12-2"><a href="#cb12-2"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(x, y, <span class="at">color =</span> .cluster)) <span class="sc">+</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a>  </span>
+<span id="cb12-4"><a href="#cb12-4"></a><span class="co"># Geometries</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a></span>
+<span id="cb12-6"><a href="#cb12-6"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb12-7"><a href="#cb12-7"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_label_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> symbol), <span class="at">size =</span> <span class="dv">2</span>, <span class="at">fill =</span> <span class="st">"#282A36"</span>) <span class="sc">+</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a>  </span>
+<span id="cb12-9"><a href="#cb12-9"></a>  <span class="co"># Formatting</span></span>
+<span id="cb12-10"><a href="#cb12-10"></a></span>
+<span id="cb12-11"><a href="#cb12-11"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"#2d72d6"</span>, <span class="st">"#2dc6d6"</span>, <span class="st">"#2dd692"</span>, <span class="st">"#2dd692"</span>)) <span class="sc">+</span> </span>
+<span id="cb12-12"><a href="#cb12-12"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>#&gt; Warning: ggrepel: 488 unlabeled data points (too many overlaps). Consider
+<pre><code>#&gt; Warning: ggrepel: 497 unlabeled data points (too many overlaps). Consider
 #&gt; increasing max.overlaps</code></pre>
 </div>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
-<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-1-3.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="challenge_1_files/figure-html/unnamed-chunk-1-3.png" class="img-fluid figure-img" width="672"></a></p>
+<figure class="figure"><p><a href="challenge_1_files/figure-html/unnamed-chunk-7-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="challenge_1_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></a></p>
 </figure>
 </div>
 </div>
 </div>
 
 
-
-</main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
+</section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
     const mode = bsSheetEl.getAttribute("data-mode");
@@ -612,7 +617,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","loop":true,"descPosition":"bottom"});</script>
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","closeEffect":"zoom","loop":true,"descPosition":"bottom","selector":".lightbox"});</script>
 
 
 </body></html>
