@@ -2,9 +2,9 @@
 title: "Challenge 1"
 author: "Felix Adamaszek"
 ---
-::: callout-note
-Code
-:::
+
+# Loading libraries and data
+
 ```{r}
 
 # Load libraries 
@@ -17,14 +17,17 @@ Code
 
 # STOCK PRICES and SECTOR INFORMATION
 
-sp_500_prices_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_prices_tbl.rds")
+  sp_500_prices_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_prices_tbl.rds")
+  
+  sp_500_index_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_index_tbl.rds")
 
-sp_500_index_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_index_tbl.rds")
+```
 
+# Conversion of the stock prices to a standardized format (daily returns)
 
-#Step 1
+```{r}
 
-sp_500_daily_returns_tbl <- sp_500_prices_tbl %>% 
+  sp_500_daily_returns_tbl <- sp_500_prices_tbl %>% 
   select(symbol, date, adjusted) %>% 
   filter(date >= '2018-01-01') %>% 
   group_by(symbol) %>% 
@@ -33,20 +36,32 @@ sp_500_daily_returns_tbl <- sp_500_prices_tbl %>%
   mutate(pct_return = (adjusted - lag)/lag) %>% 
   select(symbol, date, pct_return)
 
-#Step 2
+```
 
-stock_date_matrix_tbl <- sp_500_daily_returns_tbl %>% 
+# Conversion to the User-Item format
+
+```{r}
+
+  stock_date_matrix_tbl <- sp_500_daily_returns_tbl %>% 
   spread(date, pct_return) %>% 
   replace(is.na(.),0) %>% 
   ungroup()
 
-#Step 3
+```
 
-kmeans_obj <- stock_date_matrix_tbl %>% 
+# Performing K-Means clustering
+
+```{r}
+
+  kmeans_obj <- stock_date_matrix_tbl %>% 
   within(rm("symbol")) %>% 
   kmeans(centers = 4, nstart = 20)
 
-#Step 4
+```
+
+# Finding the optimal value of K
+
+```{r}
 
 kmeans_mapper <- function(center = 3) {
   stock_date_matrix_tbl %>%
@@ -63,7 +78,7 @@ k_means_mapped_tbl %>%
   select(centers, tot.withinss) %>% 
   
   
-# Visualization
+# Visualization of tot.withinss
   
   ggplot(aes(centers, tot.withinss)) +
   geom_point(color = "#2DC6D6", size = 5) +
@@ -75,7 +90,11 @@ k_means_mapped_tbl %>%
   
   labs(title = "Skree Plot")
 
-#Step 5
+```
+
+# Application of UMAP
+
+```{r}
 
 umap_results <- stock_date_matrix_tbl %>% 
   select(-symbol) %>% 
@@ -93,7 +112,11 @@ umap_results_tbl %>%
   ggrepel::geom_label_repel(aes(label = symbol), size = 3) + 
   labs(title = "UMAP Projection")
 
-#Step 6
+```
+
+# Combination of K-Means and UMAP
+
+```{r}
 
 umap_kmeans_results_tbl <- kmeans_obj %>% 
   augment(stock_date_matrix_tbl) %>% 
