@@ -32,7 +32,7 @@ author: "Felix Adamaszek"
     
   bike_orderlines <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/bike_orderlines.rds")
     
-  needdata <- bike_orderlines %>% 
+  neededdata <- bike_orderlines %>% 
 
 #Selecting the needed columns
     
@@ -44,6 +44,75 @@ author: "Felix Adamaszek"
   na.omit() %>% 
   mutate_if(is.character, as.factor)
   
-  glimpse(needdata)
+  glimpse(neededdata)
 
 ```
+
+# Splitting the data
+
+```{r}
+
+  set.seed(123)
+  
+  splitted_data <- initial_split(neededdata, prop = 3/4)
+  
+  training_data <- training(splitted_data)
+  testing_data <- testing(splitted_data)
+
+```
+
+# Using the recipes package
+
+```{r}
+
+  bikes_recipe <- recipe(price ~ ., data = training_data) %>% 
+
+#Adding roles
+  update_role(model, new_role = "ID") %>% 
+  
+#Adding dummy variables
+  
+  step_dummy(all_nominal(), -all_outcomes()) %>% 
+  step_zv(all_predictors())
+  
+```
+
+# Create Model
+
+```{r}
+
+  lr_mod <-
+  linear_reg() %>% 
+  set_engine("glm") 
+
+```
+
+# Bundle the model and recipe with workflow package
+
+```{r}
+
+  bikes_workflow <- workflow() %>% 
+    add_model(lr_mod) %>% 
+    add_recipe(bikes_recipe)
+  bikes_workflow
+
+```
+
+# Evaluating the model with the yardstick package 
+
+```{r}
+
+#Fit Model
+
+  bikes_fit <- bikes_workflow %>% 
+  fit(data = training_data)
+
+#Prediction
+
+  bikes_prediction <- predict(bikes_fit, testing_data) %>% 
+  bind_cols(testing_data %>% select(price, model))
+
+  bikes_prediction %>% 
+  metrics(truth = price, estimate = .pred)
+  
+  ```
