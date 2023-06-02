@@ -110,5 +110,47 @@
     "title": "Challenge 2 - Supervised ML - Regeression",
     "section": "",
     "text": "1 Loading the libraries used for different purposes\n\n# For standard use\n    library(tidyverse)\n\n# For modeling\n    library(parsnip)\n\n# For preprocessing & sampling\n    library(recipes)\n    library(rsample)\n    library(workflows)\n\n# For modeling error metrics\n    library(yardstick)\n\n# Visualization of decision trees\n    library(rpart.plot)\n\n\n2 Preparing the needed data\n\n  bike_orderlines <- read_rds(\"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/bike_orderlines.rds\")\n    \n  neededdata <- bike_orderlines %>% \n\n#Selecting the needed columns\n    \n  select(model, model_year, category_1, category_2, category_3, price, frame_material) %>% \n\n#Removing duplicates and preparing the rows\n    \n  distinct() %>% \n  na.omit() %>% \n  mutate_if(is.character, as.factor)\n  \n  glimpse(neededdata)\n\n#> Rows: 230\n#> Columns: 7\n#> $ model          <fct> Spectral CF 7 WMN, Ultimate CF SLX Disc 8.0 ETAP, Neuro…\n#> $ model_year     <dbl> 2021, 2020, 2021, 2019, 2020, 2020, 2020, 2021, 2020, 2…\n#> $ category_1     <fct> Mountain, Road, Mountain, Road, Mountain, Hybrid / City…\n#> $ category_2     <fct> Trail, Race, Trail, Triathlon Bike, Dirt Jump, City, Tr…\n#> $ category_3     <fct> Spectral, Ultimate, Neuron, Speedmax, Stitched, Roadlit…\n#> $ price          <dbl> 3119, 5359, 2729, 1749, 1219, 1359, 2529, 1559, 3899, 6…\n#> $ frame_material <fct> carbon, carbon, carbon, carbon, aluminium, carbon, carb…\n\n\n\n3 Splitting the data\n\n  set.seed(123)\n  \n  splitted_data <- initial_split(neededdata, prop = 3/4)\n  \n  training_data <- training(splitted_data)\n  testing_data <- testing(splitted_data)\n\n\n4 Using the recipes package\n\n  bikes_recipe <- recipe(price ~ ., data = training_data) %>% \n\n#Adding roles\n  update_role(model, new_role = \"ID\") %>% \n  \n#Adding dummy variables\n  \n  step_dummy(all_nominal(), -all_outcomes()) %>% \n  step_zv(all_predictors())\n\n\n5 Create Model\n\n  lr_mod <-\n  linear_reg() %>% \n  set_engine(\"glm\") \n\n\n6 Bundle the model and recipe with workflow package\n\n  bikes_workflow <- workflow() %>% \n    add_model(lr_mod) %>% \n    add_recipe(bikes_recipe)\n  bikes_workflow\n\n#> ══ Workflow ════════════════════════════════════════════════════════════════════\n#> Preprocessor: Recipe\n#> Model: linear_reg()\n#> \n#> ── Preprocessor ────────────────────────────────────────────────────────────────\n#> 2 Recipe Steps\n#> \n#> • step_dummy()\n#> • step_zv()\n#> \n#> ── Model ───────────────────────────────────────────────────────────────────────\n#> Linear Regression Model Specification (regression)\n#> \n#> Computational engine: glm\n\n\n\n7 Evaluating the model with the yardstick package\n\n#Fit Model\n\n  bikes_fit <- bikes_workflow %>% \n  fit(data = training_data)\n\n#Prediction\n\n  bikes_prediction <- predict(bikes_fit, testing_data) %>% \n  bind_cols(testing_data %>% select(price, model))\n\n#> Warning in predict.lm(object, newdata, se.fit, scale = 1, type = if (type == :\n#> prediction from a rank-deficient fit may be misleading\n\n  bikes_prediction %>% \n  metrics(truth = price, estimate = .pred)"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html",
+    "href": "content/01_journal/Challenge_3.html",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "",
+    "text": "1 Loading required libraries\n\n    library(tidyverse)\n    library(GGally)\n\n    employee_attrition_tbl <- read_csv(\"/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/H2O Data/datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv\")\n\n#> Rows: 1470 Columns: 35\n#> ── Column specification ────────────────────────────────────────────────────────\n#> Delimiter: \",\"\n#> chr  (9): Attrition, BusinessTravel, Department, EducationField, Gender, Job...\n#> dbl (26): Age, DailyRate, DistanceFromHome, Education, EmployeeCount, Employ...\n#> \n#> ℹ Use `spec()` to retrieve the full column specification for this data.\n#> ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.\n\n\n\n2 Interaction between Monthly Income and Attrition?\n\n# a. Those that are leaving the company have a higher Monthly Income?\n# b. That those are staying have a lower Monthly Income\n# c. Those that are leaving have a lower Monthly Income\n# d. It's difficult to deduce anything based on the visualization\n\nemployee_attrition_tbl %>% \n  select(Attrition, MonthlyIncome) %>% \n  ggpairs(aes(color = Attrition), lower = \"blank\", legend = 1,\n            diag  = list(continuous = wrap(\"densityDiag\", alpha = 0.5))) +\n    theme(legend.position = \"bottom\")\n\n\n\n\n\n\n\nAnswer c. should be correct\n\n3 Interaction between Percent Salary Hike and Attrition?\n\n# a. Those that are leaving the company have a higher Percent Salary Hike\n# b. Those that are staying have a lower Percent Salary Hike\n# c. Those that are leaving have lower Percent Salary Hike\n# d. It's difficult to deduce anything based on the visualization\n\nemployee_attrition_tbl %>% \n  select(Attrition, PercentSalaryHike) %>% \n  ggpairs(aes(color = Attrition), lower = \"blank\", legend = 1,\n            diag  = list(continuous = wrap(\"densityDiag\", alpha = 0.5))) +\n    theme(legend.position = \"bottom\")\n\n\n\n\n\n\n\nAnswer d. should be correct"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html#those-that-are-leaving-the-company-have-a-higher-monthly-income",
+    "href": "content/01_journal/Challenge_3.html#those-that-are-leaving-the-company-have-a-higher-monthly-income",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "\n2.1 Those that are leaving the company have a higher Monthly Income?",
+    "text": "2.1 Those that are leaving the company have a higher Monthly Income?"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html#that-those-are-staying-have-a-lower-monthly-income",
+    "href": "content/01_journal/Challenge_3.html#that-those-are-staying-have-a-lower-monthly-income",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "\n2.2 That those are staying have a lower Monthly Income",
+    "text": "2.2 That those are staying have a lower Monthly Income"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html#those-that-are-leaving-have-a-lower-monthly-income",
+    "href": "content/01_journal/Challenge_3.html#those-that-are-leaving-have-a-lower-monthly-income",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "\n2.3 Those that are leaving have a lower Monthly Income",
+    "text": "2.3 Those that are leaving have a lower Monthly Income"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html#its-difficult-to-deduce-anything-based-on-the-visualization",
+    "href": "content/01_journal/Challenge_3.html#its-difficult-to-deduce-anything-based-on-the-visualization",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "\n2.4 It’s difficult to deduce anything based on the visualization",
+    "text": "2.4 It’s difficult to deduce anything based on the visualization\n\nemployee_attrition_tbl %>% \n  select(Attrition, MonthlyIncome) %>% \n  ggpairs(aes(color = Attrition), lower = \"blank\", legend = 1,\n            diag  = list(continuous = wrap(\"densityDiag\", alpha = 0.5))) +\n    theme(legend.position = \"bottom\")\n\n\n\n\n\n\n\nWe can deduce that those that are leaving are more likely to be the ones with lower income as seen in the upper right plot. Answer: C"
+  },
+  {
+    "objectID": "content/01_journal/Challenge_3.html#monthly-income",
+    "href": "content/01_journal/Challenge_3.html#monthly-income",
+    "title": "Automated Machine Learning with H20 (I)",
+    "section": "\n2.5 Monthly Income",
+    "text": "2.5 Monthly Income\n\nemployee_attrition_tbl %>% \n  select(Attrition, MonthlyIncome) %>% \n  ggpairs()\n\n#> `stat_bin()` using `bins = 30`. Pick better value with `binwidth`."
   }
 ]
