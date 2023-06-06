@@ -3,6 +3,19 @@ title: "Automated Machine Learning with H20 (II)"
 author: "Felix Adamaszek"
 ---
 
+# Steps for this challenge
+
+```{r}
+
+# 1. Load the training & test dataset
+# 2. Specifiy the response and predictor variables
+# 3. run AutoML specifying the stopping criterion
+# 4. View the leaderboard
+# 5. Predicting using Leader Model
+# 6. Save the leader model
+
+```
+
 # Loading required libraries
 
 ```{r}
@@ -28,7 +41,7 @@ library(glue)
 
 ```{r}
 
-set.seed(123)
+set.seed(1234)
 split_obj <- initial_split(product_backorders, prop = 0.85)
 train_readable_tbl <- training(split_obj)
 test_readable_tbl <- testing(split_obj)
@@ -63,31 +76,63 @@ x <- setdiff(names(train_h2o),y)
 # Running AutoML
 
 ```{r}
-# AB HIER NOCHMAL PRÜFEN 
-# automl_models_h2o <- h2o.automl(
-#   x = x,
- #  y = y,
-  # training_frame    = train_h2o,
-   #validation_frame  = valid_h2o,
-   #leaderboard_frame = test_h2o,
-   #max_runtime_secs  = 30,
-   #nfolds            = 5 
- #)
+
+automl_models_h2o <- h2o.automl(
+   x = x,
+   y = y,
+   training_frame    = train_h2o,
+   validation_frame  = valid_h2o,
+   leaderboard_frame = test_h2o,
+   max_runtime_secs  = 30,
+   nfolds            = 5 
+ )
 
 ```
 
 # Leaderboard and leadermodel
 
 ```{r}
-# automl_models_h2o@leaderboard
 
-# predictions <- h2o.predict(automl_models_h2o@leader, newdata = as.h2o((test_data)))
-# predictions_tbl <- predictions %>% 
-  # as_tibble()
-# predictions_tbl
-# automl_models_h2o@leader
-# h2o.getModel("StackedEnsemble_AllModels_2_AutoML_5_20230510_181759") %>% 
+typeof(automl_models_h2o)
 
-# h2o.saveModel(path = "/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/Challenge_4_files")
+slotNames(automl_models_h2o)
+
+automl_models_h2o@leaderboard
+
+automl_models_h2o@leader
+
+h2o.init()
+
+# h2o.getModel("StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844") %>%
+# h2o.saveModel(path = "/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test")
+
+```
+
+# Predicting using leader model
+
+
+```{r}
+
+stacked_ensemble_h2o <- h2o.loadModel("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test/StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844")
+
+predictions <- h2o.predict(stacked_ensemble_h2o, newdata = as.h2o(test_data))
+
+typeof(predictions)
+
+predictions_tbl <- predictions %>% as_tibble()
+
+```
+
+# Optional: Preparation for recreating the model and/or tune some values
+
+```{r}
+
+h2o.init()
+
+deep_learning_h2o <- h2o.loadModel("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test/StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844")
+
+?h2o.deeplearning
+
+deep_learning_h2o@allparameters
 
 ```
