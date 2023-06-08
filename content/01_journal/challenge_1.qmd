@@ -1,0 +1,140 @@
+---
+title: "Challenge 1"
+author: "Felix Adamaszek"
+---
+
+# Loading libraries and data
+
+```{r}
+
+# Load libraries 
+    library(tidyverse)
+    library(tidyquant)
+    library(broom)
+    library(umap)
+    library(readr)
+    library(readxl)
+
+# STOCK PRICES and SECTOR INFORMATION
+
+  sp_500_prices_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_prices_tbl.rds")
+  
+  sp_500_index_tbl <- read_rds("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/FUNDAMENTAL_DOWNLOADS/sp_500_index_tbl.rds")
+
+```
+
+# Conversion of the stock prices to a standardized format (daily returns)
+
+```{r}
+
+  sp_500_daily_returns_tbl <- sp_500_prices_tbl %>% 
+  select(symbol, date, adjusted) %>% 
+  filter(date >= '2018-01-01') %>% 
+  group_by(symbol) %>% 
+  mutate(lag = lag(adjusted)) %>% 
+  na.omit %>% 
+  mutate(pct_return = (adjusted - lag)/lag) %>% 
+  select(symbol, date, pct_return)
+
+```
+
+# Conversion to the User-Item format
+
+```{r}
+
+  stock_date_matrix_tbl <- sp_500_daily_returns_tbl %>% 
+  spread(date, pct_return) %>% 
+  replace(is.na(.),0) %>% 
+  ungroup()
+
+```
+
+# Performing K-Means clustering
+
+```{r}
+
+  kmeans_obj <- stock_date_matrix_tbl %>% 
+  within(rm("symbol")) %>% 
+  kmeans(centers = 4, nstart = 20)
+
+```
+
+# Finding the optimal value of K
+
+```{r}
+
+kmeans_mapper <- function(center = 3) {
+  stock_date_matrix_tbl %>%
+    select(-symbol) %>%
+    kmeans(centers = center, nstart = 20)
+}
+
+k_means_mapped_tbl <- tibble(centers = 1:30) %>% 
+  mutate(k_means = centers %>%  map(kmeans_mapper)) %>% 
+  mutate(glance = k_means %>% map(glance))
+  
+k_means_mapped_tbl %>% 
+  unnest(glance) %>% 
+  select(centers, tot.withinss) %>% 
+  
+  
+# Visualization of tot.withinss
+  
+  ggplot(aes(centers, tot.withinss)) +
+  geom_point(color = "#2DC6D6", size = 5) +
+  geom_line(color = "#2DC6D6", linewidth = 2) +
+  # Add labels (which are repelled a little)
+  ggrepel::geom_label_repel(aes(label = centers), color = "#2DC6D6") + 
+  
+# Formatting
+  
+  labs(title = "Skree Plot")
+
+```
+
+# Application of UMAP
+
+```{r}
+
+umap_results <- stock_date_matrix_tbl %>% 
+  select(-symbol) %>% 
+  umap()
+
+umap_results_tbl <- umap_results$layout %>% 
+  as_tibble(.name_repair = "unique") %>% 
+  set_names(c("x", "y")) %>%
+  bind_cols(stock_date_matrix_tbl %>% select(symbol)) 
+
+umap_results_tbl %>% 
+  ggplot(aes(x, y), ) +
+  geom_point(alpha = 0.5) + 
+  theme_tq() + 
+  ggrepel::geom_label_repel(aes(label = symbol), size = 3) + 
+  labs(title = "UMAP Projection")
+
+```
+
+# Combination of K-Means and UMAP
+
+```{r}
+
+umap_kmeans_results_tbl <- kmeans_obj %>% 
+  augment(stock_date_matrix_tbl) %>% 
+  select(symbol, .cluster) %>% 
+  left_join(umap_results_tbl) %>% 
+  left_join(sp_500_index_tbl %>% select(symbol, company, sector))
+  
+umap_kmeans_results_tbl %>% 
+  ggplot(aes(x, y, color = .cluster)) +
+  
+# Geometries
+
+  geom_point(alpha = 0.5) +
+  ggrepel::geom_label_repel(aes(label = symbol), size = 2, fill = "#282A36") +
+  
+# Formatting
+
+  scale_color_manual(values=c("#2d72d6", "#2dc6d6", "#2dd692", "#2dd800")) + 
+  theme(legend.position = "none")
+
+```

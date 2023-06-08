@@ -1,0 +1,138 @@
+---
+title: "Automated Machine Learning with H20 (II)"
+author: "Felix Adamaszek"
+---
+
+# Steps for this challenge
+
+```{r}
+
+# 1. Load the training & test dataset
+# 2. Specifiy the response and predictor variables
+# 3. run AutoML specifying the stopping criterion
+# 4. View the leaderboard
+# 5. Predicting using Leader Model
+# 6. Save the leader model
+
+```
+
+# Loading required libraries
+
+```{r}
+
+library(tidyverse)
+library(h2o)
+library(rsample)
+library(recipes)
+library(cowplot)
+library(glue)
+
+```
+
+# Loading required data 
+
+```{r}
+
+    product_backorders <- read_csv("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/H2O Data/product_backorders.csv")
+
+```
+
+# Splitting the data to training and test
+
+```{r}
+
+set.seed(1234)
+split_obj <- initial_split(product_backorders, prop = 0.85)
+train_readable_tbl <- training(split_obj)
+test_readable_tbl <- testing(split_obj)
+
+product_rec <- recipe(went_on_backorder ~ ., data = train_readable_tbl) %>% 
+  step_dummy(all_nominal(), -all_outcomes()) %>% 
+  step_zv(all_predictors()) %>% 
+  prep()
+
+train_data <- bake(product_rec, new_data = train_readable_tbl)
+test_data <- bake(product_rec, new_data = test_readable_tbl)
+
+```
+
+# Response and predictor variables
+
+```{r}
+
+h2o.init()
+
+split_h2o <- h2o.splitFrame(as.h2o(train_data), ratios = c(0.85), seed = 1234)
+train_h2o <- split_h2o[[1]]
+valid_h2o <- split_h2o[[2]]
+test_h2o  <- as.h2o(test_data)
+
+y <- "went_on_backorder"
+x <- setdiff(names(train_h2o),y)
+
+```
+
+
+# Running AutoML
+
+```{r}
+
+automl_models_h2o <- h2o.automl(
+   x = x,
+   y = y,
+   training_frame    = train_h2o,
+   validation_frame  = valid_h2o,
+   leaderboard_frame = test_h2o,
+   max_runtime_secs  = 30,
+   nfolds            = 5 
+ )
+
+```
+
+# Leaderboard and leadermodel
+
+```{r}
+
+typeof(automl_models_h2o)
+
+slotNames(automl_models_h2o)
+
+automl_models_h2o@leaderboard
+
+automl_models_h2o@leader
+
+h2o.init()
+
+# h2o.getModel("StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844") %>%
+# h2o.saveModel(path = "/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test")
+
+```
+
+# Predicting using leader model
+
+
+```{r}
+
+stacked_ensemble_h2o <- h2o.loadModel("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test/StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844")
+
+predictions <- h2o.predict(stacked_ensemble_h2o, newdata = as.h2o(test_data))
+
+typeof(predictions)
+
+predictions_tbl <- predictions %>% as_tibble()
+
+```
+
+# Optional: Preparation for recreating the model and/or tune some values
+
+```{r}
+
+h2o.init()
+
+deep_learning_h2o <- h2o.loadModel("/Users/felixadamaszek/Documents/GitHub/ss23-bdml-FelixAdams1827/ss23-bdml-FelixAdams1827/content/01_journal/test/StackedEnsemble_BestOfFamily_2_AutoML_2_20230606_141844")
+
+?h2o.deeplearning
+
+deep_learning_h2o@allparameters
+
+```
